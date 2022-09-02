@@ -1,0 +1,18 @@
+version: 2.0
+shards:
+  ameba:
+    git: https://github.com/crystal-ameba/ameba.git
+    version: 1.0.1
+
+  crinja:
+    git: https://github.com/straight-shoota/crinja.git
+    version: 0.8.0
+
+  crystal-env:
+    git: https://github.com/crystal-lang/crystal-env.git
+    version: 0.1.0+git.commit.05a1d92cfbb11a75a0077323b9631a467b7a6b91
+
+  spectator:
+    git: https://gitlab.com/arctic-fox/spectator.git
+    version: 0.11.3
+

@@ -1,0 +1,29 @@
+name: envtpl
+
+version: 1.0.0
+
+crystal: 1.5.0
+
+license: MIT
+
+authors:
+  - Nicolas Rodriguez <nico@nicoladmin.fr>
+
+targets:
+  envtpl:
+    main: src/envtpl.cr
+
+dependencies:
+  crinja:
+    github: straight-shoota/crinja
+  crystal-env:
+    github: crystal-lang/crystal-env
+    branch: master
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+    version: ~> 1.0.0
+  spectator:
+    gitlab: arctic-fox/spectator
+    version: ~> 0.11.0
