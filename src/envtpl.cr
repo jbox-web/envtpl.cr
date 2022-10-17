@@ -45,7 +45,7 @@ Crinja.filter({indent: nil}, :json) do
 end
 
 module Envtpl
-  VERSION = "1.0.0"
+  VERSION = "1.1.0"
 
   def self.parse_args!
     source_file = STDIN
