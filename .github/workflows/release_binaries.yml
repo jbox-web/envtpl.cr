@@ -19,7 +19,7 @@ jobs:
       - name: Setup Earthly
         uses: earthly/actions/setup-earthly@v1
         with:
-          version: v0.6.22
+          version: v0.6.30
 
       - name: Build static binaries
         run: make release-static
