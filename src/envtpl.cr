@@ -78,12 +78,11 @@ module Envtpl
       end
     end
 
-    [source_file, destination_file]
+    {source_file, destination_file}
   end
 
   def self.convert(source, destination)
-    content = read(source)
-    content = transform(content)
+    content = transform(read(source))
     render(content, destination)
   end
 
