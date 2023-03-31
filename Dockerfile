@@ -4,7 +4,7 @@
 
 # Build envtpl with Crystal upstream image
 # Use alpine variant to build static binary
-FROM crystallang/crystal:1.7.3-alpine AS binary-file
+FROM alpine:edge AS binary-file
 
 # Fetch platforms variables from ARGS
 ARG TARGETPLATFORM
@@ -20,7 +20,7 @@ ENV \
   TARGETVARIANT=${TARGETVARIANT}
 
 # Install build dependencies
-RUN apk add --update yaml-static
+RUN apk add --update --no-cache build-base crystal shards yaml-static xz-dev xz-static libxml2-dev libxml2-static zlib-static
 
 # Set build environment
 WORKDIR /build
