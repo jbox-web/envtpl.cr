@@ -55,6 +55,10 @@ module Envtpl
       parser.banner = "Usage: envtpl [arguments]"
       parser.on("-i FILE", "--in=FILE", "Specifies the input file (STDIN by default)") { |name| source_file = name }
       parser.on("-o FILE", "--out=FILE", "Specifies the output file (STDOUT by default)") { |name| destination_file = name }
+      parser.on("-v", "--version", "Show version") do
+        STDOUT.puts VERSION
+        exit 0
+      end
       parser.on("-h", "--help", "Show this help") do
         STDOUT.puts parser
         exit 0
