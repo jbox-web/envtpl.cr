@@ -91,7 +91,7 @@ module Envtpl
   end
 
   def self.read(source)
-    source == STDIN ? STDIN.gets : File.read(source.to_s)
+    source == STDIN ? STDIN.gets_to_end : File.read(source.to_s)
   end
 
   def self.transform(content)
