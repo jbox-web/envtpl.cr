@@ -8,7 +8,7 @@ require "crinja"
 # Set environment
 Crystal::Env.default("development")
 
-# Declare Crijna function: env()
+# Declare Crinja function: env()
 Crinja.function(:env) do
   if arguments.varargs.empty? && arguments.kwargs.empty?
     Crinja::Value.new(ENV.to_h)
@@ -35,7 +35,7 @@ Crinja.function(:env) do
   end
 end
 
-# Declare Crijna filter: json
+# Declare Crinja filter: json
 Crinja.filter({indent: nil}, :json) do
   raw = target.raw
   indent = arguments.fetch("indent", 2).to_i
