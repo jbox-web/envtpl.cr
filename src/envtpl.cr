@@ -71,6 +71,9 @@ module Envtpl
     end
 
     if source_file == STDIN
+      # a pipe should be present, but it's not, for exemple
+      # when envtpl is called without arguments.
+      # render usage and exit 0
       if STDIN.tty?
         STDERR.puts opt_parser
         exit 0
