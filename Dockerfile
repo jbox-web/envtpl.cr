@@ -20,7 +20,7 @@ ENV \
   TARGETVARIANT=${TARGETVARIANT}
 
 # Install build dependencies
-RUN apk add --update --no-cache yaml-static
+RUN apk add --update --no-cache yaml-static upx
 
 # Set build environment
 WORKDIR /build

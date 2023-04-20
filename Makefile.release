@@ -24,3 +24,4 @@ deps: debug ## Install production dependencies
 
 release: deps ## Compile to production binary (static mode)
 	crystal build $(COMPILE_OPTS) -o $(OUTPUT_FILE) $(SOURCE_FILE)
+	upx $(OUTPUT_FILE)
