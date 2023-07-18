@@ -2,7 +2,7 @@ name: envtpl
 
 version: 1.4.0
 
-crystal: 1.8.0
+crystal: 1.9.1
 
 license: MIT
 
@@ -23,7 +23,7 @@ dependencies:
 development_dependencies:
   ameba:
     github: crystal-ameba/ameba
-    version: ~> 1.4.0
+    branch: master
   spectator:
     gitlab: arctic-fox/spectator
     version: ~> 0.11.0
