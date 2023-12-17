@@ -2,9 +2,10 @@
 # Constants #
 #############
 
-SOURCE_FILE  = src/envtpl.cr
-OUTPUT_FILE  = bin/envtpl-${TARGETOS}-${TARGETARCH}
-COMPILE_OPTS = --threads 4 --release --error-trace --static
+SOURCE_FILE     = src/envtpl.cr
+OUTPUT_FILE     = bin/envtpl-${TARGETOS}-${TARGETARCH}
+COMPILE_OPTS    = --threads 4 --release --error-trace --static
+COMPRESSED_FILE = $(OUTPUT_FILE)-upx
 
 #########
 # Tasks #
@@ -18,10 +19,11 @@ debug: ## Display build environment config
 	@echo "TARGETVARIANT: ${TARGETVARIANT}"
 	@echo "SOURCE_FILE: $(SOURCE_FILE)"
 	@echo "OUTPUT_FILE: $(OUTPUT_FILE)"
+	@echo "COMPRESSED_FILE: $(COMPRESSED_FILE)"
 
 deps: debug ## Install production dependencies
 	shards install --production
 
 release: deps ## Compile to production binary (static mode)
 	crystal build $(COMPILE_OPTS) -o $(OUTPUT_FILE) $(SOURCE_FILE)
-	upx $(OUTPUT_FILE)
+	upx -o $(COMPRESSED_FILE) $(OUTPUT_FILE)
