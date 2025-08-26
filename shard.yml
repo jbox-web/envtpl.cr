@@ -2,7 +2,7 @@ name: envtpl
 
 version: 1.4.3
 
-crystal: 1.15.1
+crystal: 1.17.1
 
 license: MIT
 
