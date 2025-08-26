@@ -41,7 +41,6 @@ all: help
 
 setup: ## Setup local environment
 	asdf plugin add crystal || true
-	asdf plugin add earthly https://github.com/YR-ZR0/asdf-earthly.git || true
 	asdf install
 	asdf current
 
@@ -73,12 +72,9 @@ ameba: ## Run static code analysis
 ############################
 
 docker-image: ## Build local platform Docker image for local development
-	docker build . -t envtpl-dev:latest
+	docker buildx bake docker-image
 
-docker-images: ## Build multiplatforms Docker images with Earthly
-	earthly --ci --output +all-docker-images
-
-.PHONY: docker-image docker-images
+.PHONY: docker-image
 
 
 #################
@@ -99,7 +95,11 @@ uninstall: ## Uninstall envtpl from $(INSTALL_DIR)
 	$(sudo) rm -f $(INSTALL_DIR)/envtpl
 
 release-static: ## Build static binary with Earthly
-	earthly --ci --output +all-binaries
+	docker buildx bake binary
+	mv packages/linux_arm64/envtpl-linux-arm64 packages/
+	mv packages/linux_amd64/envtpl-linux-amd64 packages/
+	rmdir packages/linux_arm64/ packages/linux_amd64/
+	rm -f packages/*.sha256
 	cd packages; for f in *; do shasum --algorithm 256 $$f > $$f.sha256; done
 
 .PHONY: release deps-release install uninstall release-static

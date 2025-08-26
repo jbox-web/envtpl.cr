@@ -4,7 +4,7 @@
 
 # Build envtpl with Crystal upstream image
 # Use alpine variant to build static binary
-FROM crystallang/crystal:1.15.1-alpine AS binary-file
+FROM crystallang/crystal:1.17.1-alpine AS build-binary-file
 
 # Fetch platforms variables from ARGS
 ARG TARGETPLATFORM
@@ -32,6 +32,11 @@ RUN mkdir /build/bin
 # Build the binary
 RUN make release
 
+# Extract binary from Docker image
+FROM scratch AS binary-file
+ARG TARGETOS
+ARG TARGETARCH
+COPY --from=build-binary-file /build/bin/envtpl-${TARGETOS}-${TARGETARCH} /
 
 ###########
 # RUNTIME #
@@ -45,7 +50,7 @@ ARG TARGETOS
 ARG TARGETARCH
 
 # Grab envtpl binary from **binary-file** step and inject it in the final image
-COPY --from=binary-file /build/bin/envtpl-${TARGETOS}-${TARGETARCH} /usr/bin/envtpl
+COPY --from=build-binary-file /build/bin/envtpl-${TARGETOS}-${TARGETARCH} /usr/bin/envtpl
 
 # Set runtime environment
 USER nonroot
