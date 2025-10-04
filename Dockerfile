@@ -54,7 +54,7 @@ COPY --from=build-binary-file /build/bin/envtpl-${TARGETOS}-${TARGETARCH} /usr/b
 
 # Set runtime environment
 USER nonroot
-ENV USER nonroot
-ENV HOME /home/nonroot
+ENV USER=nonroot
+ENV HOME=/home/nonroot
 WORKDIR /home/nonroot
 ENTRYPOINT ["envtpl"]
