@@ -4,7 +4,7 @@
 
 # Build envtpl with Crystal upstream image
 # Use alpine variant to build static binary
-FROM crystallang/crystal:1.17.1-alpine AS build-binary-file
+FROM crystallang/crystal:1.18.0-alpine AS build-binary-file
 
 # Fetch platforms variables from ARGS
 ARG TARGETPLATFORM
