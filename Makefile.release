@@ -2,8 +2,9 @@
 # Constants #
 #############
 
-SOURCE_FILE     = src/envtpl.cr
-OUTPUT_FILE     = bin/envtpl-${TARGETOS}-${TARGETARCH}
+PROGRAM_NAME    = envtpl
+SOURCE_FILE     = src/$(PROGRAM_NAME).cr
+OUTPUT_FILE     = bin/$(PROGRAM_NAME)-${TARGETOS}-${TARGETARCH}
 COMPILE_OPTS    = --threads 4 --release --error-trace --static
 COMPRESSED_FILE = $(OUTPUT_FILE)-upx
 

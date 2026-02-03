@@ -89,10 +89,10 @@ deps-release: ## Install production dependencies
 	shards install --production
 
 install: ## Install envtpl in $(INSTALL_DIR)
-	$(sudo) cp $(OUTPUT_DIR)/$(OUTPUT_FILE) $(INSTALL_DIR)/envtpl
+	$(sudo) cp $(OUTPUT_DIR)/$(OUTPUT_FILE) $(INSTALL_DIR)/$(OUTPUT_FILE)
 
 uninstall: ## Uninstall envtpl from $(INSTALL_DIR)
-	$(sudo) rm -f $(INSTALL_DIR)/envtpl
+	$(sudo) rm -f $(INSTALL_DIR)/$(OUTPUT_FILE)
 
 release-static: ## Build static binary with Earthly
 	docker buildx bake binary

@@ -2,21 +2,60 @@
 name: CI
 
 on:
-  - push
-  - pull_request
-
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+  # Run workflow manually
+  workflow_dispatch:
 
 jobs:
-  test_linux:
+  ameba:
     runs-on: ubuntu-latest
     steps:
       - name: Git checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Crystal
         uses: crystal-lang/install-crystal@v1
         with:
-          crystal: 1.18.0
+          crystal: 1.18.2
+
+      - name: Install dependencies
+        run: make deps
+
+      - name: Run static code analysis
+        run: make ameba
+
+  test_linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: 1.18.2
+
+      - name: Install dependencies
+        run: make deps
+
+      - name: Run tests
+        run: make spec
+
+  test_macos:
+    runs-on: macos-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: 1.18.2
 
       - name: Install dependencies
         run: make deps

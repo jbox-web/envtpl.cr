@@ -45,7 +45,12 @@ Crinja.filter({indent: nil}, :json) do
 end
 
 module Envtpl
-  VERSION = "1.5.0"
+  VERSION = {{ `shards version #{__DIR__}`.chomp.stringify }}
+  GIT_REF = {{ `git log -n 1 --format="%H" | head -c 8`.chomp.stringify }}
+
+  def self.version
+    "#{VERSION} (#{GIT_REF})"
+  end
 
   def self.parse_args!
     source_file = STDIN
@@ -56,7 +61,7 @@ module Envtpl
       parser.on("-i FILE", "--in=FILE", "Specifies the input file (STDIN by default)") { |name| source_file = name }
       parser.on("-o FILE", "--out=FILE", "Specifies the output file (STDOUT by default)") { |name| destination_file = name }
       parser.on("-v", "--version", "Show version") do
-        STDOUT.puts VERSION
+        STDOUT.puts version
         exit 0
       end
       parser.on("-h", "--help", "Show this help") do

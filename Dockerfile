@@ -2,11 +2,11 @@
 # CRYSTAL #
 ###########
 
-FROM alpine:3.22 AS crystal
+FROM alpine:3.23 AS crystal
 
 RUN apk add --update --no-cache \
   make \
-  crystal=~1.16 \
+  crystal=~1.18 \
   shards \
   gc-dev \
   gc-static \
