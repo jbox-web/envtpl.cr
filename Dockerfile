@@ -10,10 +10,13 @@ RUN apk add --update --no-cache \
   shards \
   gc-dev \
   gc-static \
+  git \
   libxml2-dev \
   libxml2-static \
   openssl-dev \
   openssl-libs-static \
+  gmp-dev \
+  gmp-static \
   pcre2-dev \
   pcre2-static \
   xz-dev \
@@ -45,6 +48,7 @@ ENV \
 
 # Set build environment
 WORKDIR /build
+COPY .git/ /build/.git/
 COPY shard.yml shard.lock /build/
 COPY Makefile.release /build/Makefile
 COPY src/ /build/src/

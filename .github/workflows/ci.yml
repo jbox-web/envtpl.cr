@@ -1,13 +1,21 @@
 ---
 name: CI
 
+permissions: {}
+
 on:
   push:
     branches:
       - '**'
+    paths-ignore:
+      - "**.md"
   pull_request:
     branches:
       - '**'
+    paths-ignore:
+      - "**.md"
+  schedule:
+    - cron: '0 4 1 * *'
   # Run workflow manually
   workflow_dispatch:
 
@@ -17,48 +25,73 @@ jobs:
     steps:
       - name: Git checkout
         uses: actions/checkout@v6
-
-      - name: Setup Crystal
-        uses: crystal-lang/install-crystal@v1
         with:
-          crystal: 1.18.2
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@v3
 
       - name: Install dependencies
-        run: make deps
+        run: mise dev:deps
 
       - name: Run static code analysis
-        run: make ameba
+        run: mise dev:ameba
 
   test_linux:
     runs-on: ubuntu-latest
     steps:
       - name: Git checkout
         uses: actions/checkout@v6
-
-      - name: Setup Crystal
-        uses: crystal-lang/install-crystal@v1
         with:
-          crystal: 1.18.2
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@v3
 
       - name: Install dependencies
-        run: make deps
+        run: mise dev:deps
 
       - name: Run tests
-        run: make spec
+        run: mise dev:spec
 
-  test_macos:
-    runs-on: macos-latest
+  test_macos_arm64:
+    runs-on: macos-26
     steps:
       - name: Git checkout
         uses: actions/checkout@v6
-
-      - name: Setup Crystal
-        uses: crystal-lang/install-crystal@v1
         with:
-          crystal: 1.18.2
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@v3
+
+      # TODO: remove me when https://github.com/crystal-lang/crystal/issues/16746 is fixed
+      - name: Fix Crystal shards
+        run: mise dev:fix-shards-command
 
       - name: Install dependencies
-        run: make deps
+        run: mise dev:deps
 
       - name: Run tests
-        run: make spec
+        run: mise dev:spec
+
+  test_macos_amd64:
+    runs-on: macos-26-intel
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@v3
+
+      # TODO: remove me when https://github.com/crystal-lang/crystal/issues/16746 is fixed
+      - name: Fix Crystal shards
+        run: mise dev:fix-shards-command
+
+      - name: Install dependencies
+        run: mise dev:deps
+
+      - name: Run tests
+        run: mise dev:spec
