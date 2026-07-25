@@ -14,6 +14,7 @@ Grab the latest binary from the [releases](https://github.com/jbox-web/envtpl/re
 Usage: envtpl [arguments]
     -i FILE, --in=FILE               Specifies the input file (STDIN by default)
     -o FILE, --out=FILE              Specifies the output file (STDOUT by default)
+    -v, --version                    Show version
     -h, --help                       Show this help
 ```
 

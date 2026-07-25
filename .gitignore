@@ -9,3 +9,6 @@
 
 # Ignore MacOS files
 .DS_Store
+
+# Ignore spectator's failing-example cache
+/.spectator-failures
