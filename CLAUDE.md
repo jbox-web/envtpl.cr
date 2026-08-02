@@ -70,7 +70,7 @@ Specs use [Spectator](https://gitlab.com/arctic-fox/spectator), not the stdlib s
 
 ## CI
 
-`.github/workflows/ci.yml` is a verbatim copy of the canonical Crystal CI template (`~/.claude/references/crystal-ci.yml`) — change the template first, then propagate. It runs format-check, ameba, docs, and the spec suite (single- and multi-threaded) on linux amd64/arm64, macOS arm64/intel, plus a `continue-on-error` nightly-compiler job. `MISE_DISABLE_TOOLS` skips crystalline, whose macOS binary would fail its post-install check on the runners.
+`.github/workflows/ci.yml` is a verbatim copy of the canonical Crystal CI template for binary projects (`~/.claude/references/crystal-ci-binary.yml`) — change the template first, then propagate. That template is itself `crystal-ci.yml`, the library variant, plus the `build_static_binaries` job; anything common to both is edited in `crystal-ci.yml` first. It runs format-check, ameba, docs, and the spec suite (single- and multi-threaded) on linux amd64/arm64, macOS arm64/intel, plus a `continue-on-error` nightly-compiler job. `MISE_DISABLE_TOOLS` skips crystalline, whose macOS binary would fail its post-install check on the runners.
 
 The `build_static_binaries` job runs `mise release:static` on every push and PR. Without it, `Dockerfile`, `Makefile.release` and `docker-bake.hcl` were only exercised on a tag push — that is, during the release itself, when a break ships a release short of a platform.
 
