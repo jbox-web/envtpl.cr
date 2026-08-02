@@ -1,6 +1,10 @@
 ---
 name: Release Binaries
 
+# The token only ever needs to publish release assets. Declared empty here so
+# that any job added later starts with no permission at all and has to opt in.
+permissions: {}
+
 # crystalline is the Crystal LSP server, only needed in an editor.
 # Its macOS binary (>= 0.18.0) is dynamically linked against
 # /opt/homebrew/opt/llvm/lib/libLLVM.dylib, which is absent on the runners,
@@ -17,8 +21,30 @@ on:
       - '*'
 
 jobs:
-  release_linux:
+  # The release is created once, up front. When the three build jobs each
+  # created it themselves, they raced on the same tag: whichever lost could
+  # fail and leave the release short of a platform.
+  create_release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Create the release
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+
+  release_linux:
+    needs: create_release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Git checkout
         uses: actions/checkout@v7
@@ -37,15 +63,22 @@ jobs:
       - name: Build static binaries
         run: mise release:static
 
-      - name: Create release and publish assets
+      - name: Publish assets
         uses: ncipollo/release-action@v1
         with:
           artifacts: "packages/*"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
+          # The release already exists: only add assets to it. Rewriting the
+          # body or the name would let the three jobs clobber each other.
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
 
   release_macos_arm64:
+    needs: create_release
     runs-on: macos-26
+    permissions:
+      contents: write
     steps:
       - name: Git checkout
         uses: actions/checkout@v7
@@ -70,15 +103,22 @@ jobs:
         env:
           OUTPUT_FILE: bin/envtpl-darwin-arm64
 
-      - name: Create release and publish assets
+      - name: Publish assets
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "bin/*"
+          # Restricted to the binary just built: a bare `bin/*` would also
+          # publish anything else that landed in bin/.
+          artifacts: "bin/envtpl-darwin-arm64*"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
 
   release_macos_amd64:
+    needs: create_release
     runs-on: macos-26-intel
+    permissions:
+      contents: write
     steps:
       - name: Git checkout
         uses: actions/checkout@v7
@@ -103,9 +143,13 @@ jobs:
         env:
           OUTPUT_FILE: bin/envtpl-darwin-amd64
 
-      - name: Create release and publish assets
+      - name: Publish assets
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "bin/*"
+          # Restricted to the binary just built: a bare `bin/*` would also
+          # publish anything else that landed in bin/.
+          artifacts: "bin/envtpl-darwin-amd64*"
           token: ${{ secrets.GITHUB_TOKEN }}
           allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true

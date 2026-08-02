@@ -7,10 +7,14 @@ crystal = "1.20.3"
 
 [vars]
 APP_NAME    = "envtpl"
-SOURCE_FILE = "src/{{vars.APP_NAME}}.cr"
+# CLI entrypoint. `src/{{vars.APP_NAME}}.cr` is the library, it has no `main`.
+SOURCE_FILE = "src/cli.cr"
 OUTPUT_FILE = "{% if get_env(name='OUTPUT_FILE', default='false') == 'false' %}bin/{{vars.APP_NAME}}{% else %}{{ get_env(name='OUTPUT_FILE') }}{% endif %}"
 
-DEFAULT_COMPILE_OPTS_DEV     = "--threads 4"
+DEFAULT_COMPILE_OPTS_DEV = "--threads 4"
+# Keep in sync with COMPILE_OPTS in Makefile.release, which compiles the
+# released Linux binaries inside Alpine (same options plus --static). mise is
+# not available in that container, hence the duplication.
 DEFAULT_COMPILE_OPTS_RELEASE = "--threads 4 --release --error-trace"
 
 SPEC_OPTS            = "{% if exec(command='(tty -s && echo true) || echo false') == 'true' %}--verbose{% endif %}"
@@ -77,7 +81,14 @@ run = "cp $HOME/.local/share/mise/installs/crystal/{{tools.crystal.version}}/emb
 description = "Compile to production binary"
 run = '''
 crystal build {{vars.COMPILE_OPTS_RELEASE}} -o {{vars.OUTPUT_FILE}} {{vars.SOURCE_FILE}}
-cd bin; for f in *; do shasum --algorithm 256 $f > $f.sha256; done
+# Checksum only the binary that was just built. `cd bin; for f in *` also
+# hashed the .sha256 files produced by the previous run (envtpl.sha256.sha256,
+# one more level each time) and any other binary sitting in bin/ — ameba, or
+# the CLI build the specs produce.
+cd "$(dirname {{vars.OUTPUT_FILE}})"
+binary="$(basename {{vars.OUTPUT_FILE}})"
+rm -f "$binary.sha256"
+shasum --algorithm 256 "$binary" > "$binary.sha256"
 '''
 
 [tasks."release:deps"]

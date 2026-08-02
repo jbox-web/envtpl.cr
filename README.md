@@ -14,26 +14,104 @@ Grab the latest binary from the [releases](https://github.com/jbox-web/envtpl.cr
 Usage: envtpl [arguments]
     -i FILE, --in=FILE               Specifies the input file (STDIN by default)
     -o FILE, --out=FILE              Specifies the output file (STDOUT by default)
+    -s, --strict                     Fail instead of rendering an empty string for an undefined variable
     -v, --version                    Show version
     -h, --help                       Show this help
 ```
 
+The template is rendered verbatim: whether it goes to STDOUT or to `--out`, the
+output is byte for byte the same, trailing newline included.
+
 ## Examples
 
+### Reading a variable
+
+Any environment variable is available under its own name:
+
 ```sh
-nicolas@laptop:~/PROJECTS/CRYSTAL/envtpl$ echo "Hello: {{ SHELL }}" | bin/envtpl
+$ echo "Hello: {{ SHELL }}" | envtpl
 Hello: /bin/bash
 ```
 
+The `env()` function does the same and also works for names that are not valid
+template identifiers (`{{ MY-VAR }}` does not parse, `{{ env('MY-VAR') }}` does):
+
 ```sh
-nicolas@laptop:~/PROJECTS/CRYSTAL/envtpl$ echo "Hello: {{ env('SHELL') }}" | bin/envtpl
+$ echo "Hello: {{ env('SHELL') }}" | envtpl
 Hello: /bin/bash
 ```
 
+Called with several names, it returns a hash restricted to them, skipping the
+ones that are not set:
+
 ```sh
-nicolas@laptop:~/PROJECTS/CRYSTAL/envtpl$ echo "Hello: {{ env('SHELL', 'USER') }}" | bin/envtpl
+$ echo "Hello: {{ env('SHELL', 'USER') }}" | envtpl
 Hello: {'SHELL' => '/bin/bash', 'USER' => 'nicolas'}
 ```
+
+Called with no argument at all, it returns the **whole** environment. Mind that
+this includes every secret the process was given:
+
+```sh
+$ echo "{{ env() }}" | envtpl
+{'SHELL' => '/bin/bash', 'USER' => 'nicolas', ...}
+```
+
+### Missing variables
+
+An undefined variable renders as an empty string, so a typo silently produces an
+empty value:
+
+```sh
+$ echo "[{{ NO_SUCH_VAR }}]" | envtpl
+[]
+```
+
+Use `default=` to make the fallback explicit:
+
+```sh
+$ echo "{{ env('NO_SUCH_VAR', default='fallback') }}" | envtpl
+fallback
+```
+
+…or `--strict` to turn the whole thing into an error. `default()` and
+`is defined` keep working under `--strict`; only *rendering* an undefined
+variable fails:
+
+```sh
+$ echo "[{{ NO_SUCH_VAR }}]" | envtpl --strict
+Crinja::UndefinedError: NO_SUCH_VAR is undefined.
+template: <stdin>:1:2 .. 1:19
+
+ 1 | [{{ NO_SUCH_VAR }}]
+ X |  ^~~~~~~~~~~~~~~~~
+$ echo $?
+1
+```
+
+### The `json` filter
+
+Serialises any value as JSON, indented by two spaces unless told otherwise:
+
+```sh
+$ echo "{{ env('SHELL', 'USER') | json }}" | envtpl
+{
+  "SHELL": "/bin/bash",
+  "USER": "nicolas"
+}
+
+$ echo "{{ env('SHELL', 'USER') | json(indent=4) }}" | envtpl
+{
+    "SHELL": "/bin/bash",
+    "USER": "nicolas"
+}
+```
+
+### A note on template trust
+
+Templates are executable input: `{% include 'other.j2' %}` reads any file under
+the current working directory (absolute paths and `../` traversal are refused).
+Render templates you trust.
 
 ## Contributing
 

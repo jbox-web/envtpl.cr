@@ -129,6 +129,121 @@ Spectator.describe Envtpl do
             end
           end
         end
+
+        context "with an explicit nil default" do
+          it "renders an empty value rather than the literal 'none'" do
+            with_env("FOO": "foo value") do
+              output = Envtpl.transform("{{ env('baz', default=none) }}")
+              expect(output).to eq ""
+            end
+          end
+        end
+      end
+    end
+
+    describe "filters" do
+      describe "json" do
+        it "indents with two spaces by default" do
+          with_env("FOO": "foo value") do
+            output = Envtpl.transform("{{ env('FOO') | json }}")
+            expect(output).to eq %("foo value")
+          end
+        end
+
+        it "honours an explicit indent" do
+          with_env("FOO": "1", "BAR": "2") do
+            output = Envtpl.transform("{{ env('FOO', 'BAR') | json(indent=4) }}")
+            expect(output).to eq %({\n    "FOO": "1",\n    "BAR": "2"\n})
+          end
+        end
+
+        it "escapes characters that would break the output syntax" do
+          with_env("FOO": %(he said "hi")) do
+            output = Envtpl.transform("{{ env('FOO') | json }}")
+            expect(output).to eq %("he said \\"hi\\"")
+          end
+        end
+
+        # A non-numeric indent is a template author mistake: it must not abort
+        # the whole render with a bare `Invalid Int32`.
+        context "when indent is not numeric" do
+          it "falls back to the default indent" do
+            with_env("FOO": "foo value") do
+              output = Envtpl.transform("{{ env('FOO') | json(indent='zz') }}")
+              expect(output).to eq %("foo value")
+            end
+          end
+        end
+      end
+    end
+
+    describe "trailing newline" do
+      it "keeps the trailing newline of the template" do
+        with_env("FOO": "foo value") do
+          expect(Envtpl.transform("{{ FOO }}\n")).to eq "foo value\n"
+        end
+      end
+
+      it "does not add a newline the template does not have" do
+        with_env("FOO": "foo value") do
+          expect(Envtpl.transform("{{ FOO }}")).to eq "foo value"
+        end
+      end
+    end
+  end
+
+  describe ".version" do
+    it "combines the shard version and the git ref" do
+      expect(Envtpl.version).to eq "#{Envtpl::VERSION} (#{Envtpl::GIT_REF})"
+    end
+  end
+
+  describe ".read" do
+    it "reads the content of a file" do
+      with_tmp_dir do |dir|
+        path = File.join(dir, "in.j2")
+        File.write(path, "{{ FOO }}\n")
+
+        expect(Envtpl.read(path)).to eq "{{ FOO }}\n"
+      end
+    end
+  end
+
+  describe ".render" do
+    it "writes the content to a file verbatim" do
+      with_tmp_dir do |dir|
+        path = File.join(dir, "out.txt")
+        Envtpl.render("some content\n", path)
+
+        expect(File.read(path)).to eq "some content\n"
+      end
+    end
+  end
+
+  describe ".convert" do
+    it "renders a file into another file" do
+      with_env("FOO": "foo value") do
+        with_tmp_dir do |dir|
+          input = File.join(dir, "in.j2")
+          output = File.join(dir, "out.txt")
+          File.write(input, "value: {{ FOO }}\n")
+
+          Envtpl.convert(input, output)
+
+          expect(File.read(output)).to eq "value: foo value\n"
+        end
+      end
+    end
+
+    it "leaves the destination untouched when rendering raises" do
+      with_tmp_dir do |dir|
+        input = File.join(dir, "in.j2")
+        output = File.join(dir, "out.txt")
+        File.write(input, "{{ unclosed ")
+        File.write(output, "previous content")
+
+        expect { Envtpl.convert(input, output) }.to raise_error
+        expect(File.read(output)).to eq "previous content"
       end
     end
   end

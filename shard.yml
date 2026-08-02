@@ -11,14 +11,12 @@ authors:
 
 targets:
   envtpl:
-    main: src/envtpl.cr
+    main: src/cli.cr
 
 dependencies:
   crinja:
     github: straight-shoota/crinja
-  crystal-env:
-    github: crystal-lang/crystal-env
-    branch: master
+    version: ~> 0.9.0
 
 development_dependencies:
   ameba:

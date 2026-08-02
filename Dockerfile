@@ -24,8 +24,7 @@ RUN apk add --update --no-cache \
   yaml-dev \
   yaml-static \
   zlib-dev \
-  zlib-static \
-  upx
+  zlib-static
 
 #########
 # BUILD #
