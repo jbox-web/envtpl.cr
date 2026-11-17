@@ -15,7 +15,7 @@ mise dev:deps          # shards install
 mise dev:build         # dev binary -> bin/envtpl (override target with OUTPUT_FILE=...)
 mise dev:spec          # full spec suite
 mise dev:spec-mt       # same suite with -Dpreview_mt, CRYSTAL_WORKERS=4
-mise dev:ameba         # static analysis (wrapped in `timeout 180`)
+mise dev:ameba         # static analysis (bounded by the task timeout, 180s)
 mise dev:format        # crystal tool format
 mise dev:format-check  # crystal tool format --check (what CI runs)
 mise dev:docs          # regenerate docs/
