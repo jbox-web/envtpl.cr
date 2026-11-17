@@ -1,11 +1,12 @@
-###########
-# CRYSTAL #
-###########
+# The image crystalreleaser builds the static linux binaries in
+# (.crystalreleaser.yml, docker.dockerfile and docker.target): the stable
+# Alpine, its own Crystal at the minor version mise pins, and the static
+# libraries envtpl links. The project is mounted when the build runs, so the
+# image holds the toolchain only.
 
 FROM alpine:3.24 AS crystal
 
 RUN apk add --update --no-cache \
-  make \
   crystal=~1.20 \
   shards \
   gc-dev \
@@ -25,60 +26,3 @@ RUN apk add --update --no-cache \
   yaml-static \
   zlib-dev \
   zlib-static
-
-#########
-# BUILD #
-#########
-
-FROM crystal AS build-binary-file
-
-# Fetch platforms variables from ARGS
-ARG TARGETPLATFORM
-ARG TARGETOS
-ARG TARGETARCH
-ARG TARGETVARIANT
-
-# Export them to build binary files with the right name: envtpl-linux-amd64
-ENV \
-  TARGETPLATFORM=${TARGETPLATFORM} \
-  TARGETOS=${TARGETOS} \
-  TARGETARCH=${TARGETARCH} \
-  TARGETVARIANT=${TARGETVARIANT}
-
-# Set build environment
-WORKDIR /build
-COPY .git/ /build/.git/
-COPY shard.yml shard.lock /build/
-COPY Makefile.release /build/Makefile
-COPY src/ /build/src/
-RUN mkdir /build/bin
-
-# Build the binary
-RUN make release
-
-# Extract binary from Docker image
-FROM scratch AS binary-file
-ARG TARGETOS
-ARG TARGETARCH
-COPY --from=build-binary-file /build/bin/envtpl-${TARGETOS}-${TARGETARCH} /
-
-###########
-# RUNTIME #
-###########
-
-# Build distroless images \o/
-FROM gcr.io/distroless/static-debian12 AS docker-image
-
-# Fetch platforms variables from ARGS
-ARG TARGETOS
-ARG TARGETARCH
-
-# Grab envtpl binary from **binary-file** step and inject it in the final image
-COPY --from=build-binary-file /build/bin/envtpl-${TARGETOS}-${TARGETARCH} /usr/bin/envtpl
-
-# Set runtime environment
-USER nonroot
-ENV USER=nonroot
-ENV HOME=/home/nonroot
-WORKDIR /home/nonroot
-ENTRYPOINT ["envtpl"]

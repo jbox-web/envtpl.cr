@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Entries before 2.0.0 were reconstructed from the tag history.
 
+## [Unreleased]
+
+### Changed
+
+- Releases are built and published by
+  [crystalreleaser](https://github.com/jbox-web/crystalreleaser) from
+  `.crystalreleaser.yml`: each runner builds its platform, then one job checks
+  that all four are there and from the same commit before creating the release.
+  A platform that fails to build now fails the release instead of leaving it
+  short of that platform. The assets keep their names (`envtpl-<os>-<arch>` and
+  its `.sha256`).
+- The release workflow runs the test suite on the tagged sources first, and
+  fires on `v*` tags only.
+- `mise release:static` rehearses that release in `dist/` (nothing published);
+  CI runs it on every push and starts the linux binaries it built.
+
+### Removed
+
+- `Makefile.release`, `docker-bake.hcl`, the build and distroless stages of the
+  `Dockerfile` (which keeps only the build image), and the `release:build`,
+  `release:deps` and `dev:docker-image` tasks.
+
 ## [2.0.0] - 2026-08-02
 
 Outcome of a full code audit. The version is a major one for a single reason:

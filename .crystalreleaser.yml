@@ -1,0 +1,68 @@
+# Release configuration, read by crystalreleaser
+# (https://github.com/jbox-web/crystalreleaser). Used by:
+#   - `mise release:static` (CI, every push): build --split --snapshot, then
+#     release --merge --snapshot --skip=publish; everything lands in dist/ and
+#     nothing is published
+#   - .github/workflows/release.yml (tag v*): build --split on three
+#     runners, then release --merge
+version: 1
+project_name: envtpl
+
+builds:
+  - id: envtpl
+    target: envtpl
+    # The options the released binaries have always been compiled with.
+    flags: [--threads, "4", --release, --error-trace]
+    platforms:
+      # Static musl binaries, built in a Crystal Alpine image; the
+      # architecture that is not the host's runs under QEMU.
+      - os: linux
+        arch: amd64
+        strategy: docker
+        static: true
+      - os: linux
+        arch: arm64
+        strategy: docker
+        static: true
+      # macOS has no static linking: each binary is built on a machine of
+      # its own architecture, and only links libraries macOS ships.
+      - os: darwin
+        arch: arm64
+        strategy: native
+      - os: darwin
+        arch: amd64
+        strategy: native
+    # The linux binaries are built in the `crystal` stage of the project's
+    # Dockerfile: alpine:3.24, Alpine's own Crystal and the static libraries
+    # envtpl links.
+    docker:
+      dockerfile: Dockerfile
+      target: crystal
+
+# The native builds need lib/; the docker ones install it in the container.
+before:
+  hooks:
+    - shards install --production
+
+# The binary itself is the asset, under the name every release has used so
+# far (envtpl-linux-amd64): scripts and the aqua registry entry fetch it by
+# that name.
+archives:
+  - id: default
+    formats: [binary]
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+
+# One envtpl-<os>-<arch>.sha256 next to each binary, as before.
+checksum:
+  split: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^test:", "^chore:", "Merge pull request"]
+
+release:
+  github:
+    owner: jbox-web
+    name: envtpl.cr
+  prerelease: auto

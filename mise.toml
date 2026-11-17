@@ -8,6 +8,11 @@ aqua.registries = ["https://github.com/jbox-web/aqua-registry"]
 [tools]
 crystal = "1.20.3"
 "aqua:elbywan/crystalline" = "0.18.0"
+# The release tool: release:static and release.yml run it from
+# .crystalreleaser.yml. Served by the jbox-web aqua registry above. Always an
+# exact version: mise hides a release younger than its minimum_release_age from
+# `latest` and from ranges, never from an exact pin.
+"aqua:jbox-web/crystalreleaser" = "0.2.1"
 
 [vars]
 APP_NAME    = "envtpl"
@@ -16,14 +21,9 @@ SOURCE_FILE = "src/cli.cr"
 OUTPUT_FILE = "{% if get_env(name='OUTPUT_FILE', default='false') == 'false' %}bin/{{vars.APP_NAME}}{% else %}{{ get_env(name='OUTPUT_FILE') }}{% endif %}"
 
 DEFAULT_COMPILE_OPTS_DEV = "--threads 4"
-# Keep in sync with COMPILE_OPTS in Makefile.release, which compiles the
-# released Linux binaries inside Alpine (same options plus --static). mise is
-# not available in that container, hence the duplication.
-DEFAULT_COMPILE_OPTS_RELEASE = "--threads 4 --release --error-trace"
 
 SPEC_OPTS            = "{% if exec(command='(tty -s && echo true) || echo false') == 'true' %}--verbose{% endif %}"
 COMPILE_OPTS_DEV     = "{% if exec(command='(tty -s && echo true) || echo false') == 'true' %}{{vars.DEFAULT_COMPILE_OPTS_DEV}} --progress{% else %}{{vars.DEFAULT_COMPILE_OPTS_DEV}}{% endif %}"
-COMPILE_OPTS_RELEASE = "{% if exec(command='(tty -s && echo true) || echo false') == 'true' %}{{vars.DEFAULT_COMPILE_OPTS_RELEASE}} --progress{% else %}{{vars.DEFAULT_COMPILE_OPTS_RELEASE}}{% endif %}"
 
 
 #####################
@@ -70,10 +70,6 @@ run = "crystal tool format"
 description = "Check code formatting"
 run = "crystal tool format --check"
 
-[tasks."dev:docker-image"]
-description = "Build local multiplatforms Docker image for local development"
-run = "docker buildx bake docker-image"
-
 # TODO: remove me when https://github.com/crystal-lang/crystal/issues/16746 is fixed
 [tasks."dev:fix-shards-command"]
 description = "Fix missing shards command"
@@ -84,31 +80,20 @@ run = "cp $HOME/.local/share/mise/installs/crystal/{{tools.crystal.version}}/emb
 # Release tasks #
 #################
 
-[tasks."release:build"]
-description = "Compile to production binary"
-run = '''
-crystal build {{vars.COMPILE_OPTS_RELEASE}} -o {{vars.OUTPUT_FILE}} {{vars.SOURCE_FILE}}
-# Checksum only the binary that was just built. `cd bin; for f in *` also
-# hashed the .sha256 files produced by the previous run (envtpl.sha256.sha256,
-# one more level each time) and any other binary sitting in bin/ — ameba, or
-# the CLI build the specs produce.
-cd "$(dirname {{vars.OUTPUT_FILE}})"
-binary="$(basename {{vars.OUTPUT_FILE}})"
-rm -f "$binary.sha256"
-shasum --algorithm 256 "$binary" > "$binary.sha256"
-'''
-
-[tasks."release:deps"]
-description = "Install production dependencies"
-run = "shards install --production"
-
+# The release path, rehearsed: what .github/workflows/release.yml
+# does on a tag, on one machine and without publishing. In two steps, the way
+# the workflow does it: `build --split` builds the share of .crystalreleaser.yml
+# this host can build (the docker linux platforms everywhere, plus the native
+# darwin one on a Mac), then `release --merge` packages it. A one-step `release
+# --snapshot` would leave the split and the merge to be run for the first time
+# by the release itself. --allow-missing: one machine never builds every
+# platform. Outputs land in dist/ (gitignored), which --clean empties first.
+# Bounded like the dev tasks: an emulated compilation that hangs would
+# otherwise hold the runner until the timeout of the job.
 [tasks."release:static"]
-description = "Build static binary with Docker"
-run = '''
-docker buildx bake binary
-mv packages/linux_arm64/{{vars.APP_NAME}}-linux-arm64 packages/
-mv packages/linux_amd64/{{vars.APP_NAME}}-linux-amd64 packages/
-rmdir packages/linux_arm64/ packages/linux_amd64/
-rm -f packages/*.sha256
-cd packages; for f in *; do shasum --algorithm 256 $f > $f.sha256; done
-'''
+description = "Build the release binaries with crystalreleaser (snapshot, no publish)"
+timeout = "4800s"
+run = [
+  "crystalreleaser build --split --snapshot --clean",
+  "crystalreleaser release --merge --snapshot --allow-missing --skip=publish",
+]

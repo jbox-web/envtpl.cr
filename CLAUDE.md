@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-The toolchain is pinned by `mise.toml` (Crystal + crystalline). Everything goes through `mise` tasks — CI calls the same tasks, so a local `mise dev:*` run is what the pipeline runs.
+The toolchain is pinned by `mise.toml` (Crystal, crystalline, crystalreleaser). Everything goes through `mise` tasks — CI calls the same tasks, so a local `mise dev:*` run is what the pipeline runs.
 
 ```sh
 mise dev:deps          # shards install
@@ -20,7 +20,7 @@ mise dev:format        # crystal tool format
 mise dev:format-check  # crystal tool format --check (what CI runs)
 mise dev:docs          # regenerate docs/
 mise dev:clean         # rm -rf bin/* lib/
-mise dev:docker-image  # local multi-arch dev image via docker buildx bake
+mise release:static    # rehearse the release in dist/ with crystalreleaser (nothing published)
 ```
 
 Run a subset of specs by example name (Spectator honours the standard spec CLI flags):
@@ -34,12 +34,13 @@ On macOS, `shards` may be missing from the Crystal install; `mise dev:fix-shards
 
 ## Release pipeline
 
-Two distinct build paths — do not conflate them:
+Releases are made by [crystalreleaser](https://github.com/jbox-web/crystalreleaser), a mise tool pinned in `mise.toml`, from `.crystalreleaser.yml`. No machine builds every platform, so a release is split: each runner builds its share with `crystalreleaser build --split`, then one job gathers the `dist/` folders and runs `crystalreleaser release --merge`, which checks that every platform is there and from the same commit, checksums and publishes without compiling.
 
-- `mise release:build` — local release binary (`--release --error-trace`), then writes the `.sha256` next to it. It checksums only the binary it just built: the previous `cd bin; for f in *` also hashed the `.sha256` of the previous run (`envtpl.sha256.sha256`, one level deeper each time) and any other binary in `bin/`.
-- `mise release:static` — static musl binaries for linux/amd64 + linux/arm64. This does **not** use `mise.toml` tasks internally: `docker-bake.hcl` drives the multi-stage `Dockerfile`, which copies `Makefile.release` in as `Makefile` and runs `make release` inside Alpine. Output lands in `packages/`, then the task flattens the per-platform dirs and regenerates checksums. `Makefile.release` is therefore the authoritative compile options for released binaries — keep it in sync with `release:build` when changing flags.
-
-The `docker-image` bake target produces a distroless image with `envtpl` as entrypoint, running as `nonroot`.
+- `mise release:static` runs those two steps on one machine, in snapshot mode (`--snapshot --allow-missing --skip=publish`): the docker linux platforms everywhere, plus the native darwin one on a Mac. Everything lands in `dist/` (gitignored, emptied by `--clean`); nothing is published.
+- The four platforms: linux amd64/arm64 static (musl), built with docker, arm64 under QEMU; darwin arm64/amd64 built natively, each on a Mac of its own architecture. crystalreleaser checks with `otool -L` that a darwin binary only loads libraries macOS ships, and fails the build otherwise. envtpl links no OpenSSL, hence no `static_libs`.
+- The linux binaries are built in the `crystal` stage of the `Dockerfile` (`docker.dockerfile` and `docker.target`): alpine:3.24, Alpine's own Crystal at the minor version mise pins, and the static libraries envtpl links. That stage is all the file holds: the project is mounted into it when the build runs. Its `crystal=~X.Y` follows the Crystal of `mise.toml`.
+- The compile options of every platform are the `flags` of `.crystalreleaser.yml` (`--threads 4 --release --error-trace`); crystalreleaser adds `--static` to the linux ones.
+- The assets keep the names every release has used: the bare binary `envtpl-<os>-<arch>` (`formats: [binary]`) and one `envtpl-<os>-<arch>.sha256` next to it (`checksum.split`).
 
 ## Architecture notes
 
@@ -51,7 +52,7 @@ This split is not cosmetic. The CLI used to live at the bottom of `src/envtpl.cr
 
 **Verbatim output.** `Envtpl::CONFIG` sets `keep_trailing_newline: true` and `render` uses `print`, not `puts`. Both are required together: Crinja otherwise eats the template's final newline, and `puts` would paper over it on STDOUT while `--out` kept the truncated bytes. Specs assert STDOUT and `--out` are byte-identical.
 
-**Compile-time version stamping.** `VERSION` and `GIT_REF` are macro-expanded by running `shards version` and `git log` at compile time. Consequences: a build needs both `shards` on PATH and a real `.git/` directory — which is why the `Dockerfile` copies `.git/` into the build stage. Bumping the version means editing `shard.yml`; nothing reads a hardcoded string.
+**Compile-time version stamping.** `VERSION` and `GIT_REF` are macro-expanded by running `shards version` and `git log` at compile time. Consequences: a build needs both `shards` on PATH and a real `.git/` directory — which the docker builds have, since crystalreleaser mounts the whole project, `.git/` included, into the `crystal` image. Bumping the version means editing `shard.yml`; nothing reads a hardcoded string.
 
 **Crinja extensions.** Two registrations happen at load time, before the module:
 
@@ -70,10 +71,10 @@ Specs use [Spectator](https://gitlab.com/arctic-fox/spectator), not the stdlib s
 
 ## CI
 
-`.github/workflows/ci.yml` is a verbatim copy of the canonical Crystal CI template for binary projects (`~/.claude/references/crystal-ci-binary.yml`) — change the template first, then propagate. That template is itself `crystal-ci.yml`, the library variant, plus the `build_static_binaries` job; anything common to both is edited in `crystal-ci.yml` first. It runs format-check, ameba, docs, and the spec suite (single- and multi-threaded) on linux amd64/arm64, macOS arm64/intel, plus a `continue-on-error` nightly-compiler job. `MISE_DISABLE_TOOLS` skips crystalline, whose macOS binary would fail its post-install check on the runners.
+`.github/workflows/ci.yml` is a verbatim copy of the canonical Crystal CI template for binary projects (`~/.claude/templates/crystal/ci-binary.yml`) — change the template first, then propagate. That template is itself `ci.yml`, the library variant, plus the `build_static_binaries` job; anything common to both is edited in `ci.yml` first. It runs format-check, ameba, docs, and the spec suite (single- and multi-threaded) on linux amd64/arm64, macOS arm64/intel, plus a `continue-on-error` nightly-compiler job. `MISE_DISABLE_TOOLS` skips crystalline, whose macOS binary would fail its post-install check on the runners.
 
-The `build_static_binaries` job runs `mise release:static` on every push and PR. Without it, `Dockerfile`, `Makefile.release` and `docker-bake.hcl` were only exercised on a tag push — that is, during the release itself, when a break ships a release short of a platform.
+The `build_static_binaries` job runs `mise release:static` on every push and PR, then runs the two linux binaries it built (`--version`). Without it, the release path would only be exercised on a tag push — that is, during the release itself, when a break ships a release short of a platform.
 
-`.github/workflows/release_binaries.yml` fires on any tag push. `create_release` creates the release once, up front; the three build jobs then `needs:` it and only upload assets (`omitBodyDuringUpdate`/`omitNameDuringUpdate`), because when each job created the release itself they raced on the same tag. Linux binaries come from `mise release:static` (QEMU + buildx), macOS arm64/intel from `mise release:build` with `OUTPUT_FILE` overridden to `bin/envtpl-darwin-<arch>`; the artifact globs are pinned to that exact name so nothing else in `bin/` gets published. The `OUTPUT_FILE` env var override is the reason `mise.toml` computes that variable through a Crinja `get_env` expression.
+`.github/workflows/release.yml` fires on a `v*` tag push. It is the canonical `release.yml` minus the `brew install openssl@4` of the darwin jobs (no `static_libs` here). A `test` job runs the suite on the tagged sources first; then `linux` (QEMU + buildx), `darwin_arm64` (macos-26) and `darwin_amd64` (macos-26-intel) each run `crystalreleaser build --split --clean` and upload their `dist/`; `release` downloads the three, and `crystalreleaser release --merge` creates the release as a draft, uploads every asset and publishes it. A platform that fails to build fails the release instead of leaving it short of that platform.
 
-Both workflows declare `permissions: {}` at the workflow level; only the jobs that publish opt into `contents: write`.
+Both workflows declare `permissions: {}` at the workflow level; only the `release` job opts into `contents: write`.
