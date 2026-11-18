@@ -39,10 +39,15 @@ builds:
       dockerfile: Dockerfile
       target: crystal
 
-# The native builds need lib/; the docker ones install it in the container.
+# Before hooks run on every runner of a split build, on the host, and not
+# during the merge, in this order. The native builds need lib/ (the docker
+# ones install it in the container), and the harvest copies the LICENSE of the
+# runtime shard from lib/: shards first. licenses/ must exist before
+# compiling (dev:licenses); the docker builds find it in the mounted project.
 before:
   hooks:
     - shards install --production
+    - bash scripts/harvest-licenses.sh
 
 # The binary itself is the asset, under the name every release has used so
 # far (envtpl-linux-amd64): scripts and the aqua registry entry fetch it by

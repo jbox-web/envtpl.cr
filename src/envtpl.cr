@@ -100,6 +100,11 @@ module Envtpl
         STDOUT.puts version
         exit 0
       end
+      # `Licenses` is required by src/cli.cr, not by this file: see there.
+      parser.on("--licenses", "Print the third-party notices embedded in this binary") do
+        STDOUT.print Licenses.text
+        exit 0
+      end
       parser.on("-h", "--help", "Show this help") do
         STDOUT.puts parser
         exit 0

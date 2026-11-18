@@ -5,6 +5,12 @@
 # from a spec without starting the CLI — no runtime environment guard needed.
 require "./envtpl"
 
+# The embedded notices are required here and not by the library: they are read
+# at compile time from licenses/, a folder only a build of the binary assembles.
+# Required by `src/envtpl.cr`, they would make the library impossible to compile
+# from anywhere else (a shard under lib/ has no licenses/ folder).
+require "./envtpl/licenses"
+
 begin
   source, destination, strict = Envtpl.parse_args!
   Envtpl.convert(source, destination, strict: strict)

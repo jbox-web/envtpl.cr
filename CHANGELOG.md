@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Entries before 2.0.0 were reconstructed from the tag history.
 
+## [Unreleased]
+
+### Added
+
+- `--licenses` prints the third-party notices embedded in the binary: the
+  license of the Crinja shard, of the Crystal runtime and of the C libraries the
+  static linux binaries link (libxml2, zlib, liblzma, pcre2, the Boehm GC, musl,
+  libgcc), plus envtpl's own. They are declared in `licenses.manifest` and
+  assembled at build time by `scripts/harvest-licenses.sh`
+  (`mise dev:licenses`); compiling without them fails on purpose.
+
 ## [2.0.1] - 2026-11-18
 
 ### Changed

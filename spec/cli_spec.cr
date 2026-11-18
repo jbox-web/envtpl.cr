@@ -89,6 +89,24 @@ Spectator.describe "envtpl CLI" do
       expect(result.stdout).to contain "Usage: envtpl"
     end
 
+    # No input is given: like --version, --licenses answers without waiting
+    # for a template on STDIN.
+    it "exits 0 and prints the embedded notices with --licenses" do
+      result = run_cli(["--licenses"])
+
+      expect(result.exit_code).to eq 0
+      expect(result.stdout).to start_with "==> clib-Apache-2.0.txt <==\nUsed by: crystal\n"
+      expect(result.stdout).to contain "\n\n==> crinja.txt <==\nCopyright 2017 Johannes Müller\n"
+      expect(result.stdout).to contain "\n\n==> envtpl.txt <==\nThe MIT License (MIT)\n"
+      expect(result.stderr).to eq ""
+    end
+
+    it "lists --licenses in the usage" do
+      result = run_cli(["--help"])
+
+      expect(result.stdout).to contain "--licenses"
+    end
+
     it "exits 1 on an unknown option" do
       result = run_cli(["--nope"])
 

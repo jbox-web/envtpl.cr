@@ -3,6 +3,9 @@
 /lib/
 /dist/
 
+# Assembled from licenses.manifest by scripts/harvest-licenses.sh (mise dev:licenses)
+/licenses/
+
 # Ignore all bin files
 /bin/*
 !/bin/.keep

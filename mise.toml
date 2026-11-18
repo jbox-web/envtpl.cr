@@ -30,8 +30,15 @@ COMPILE_OPTS_DEV     = "{% if exec(command='(tty -s && echo true) || echo false'
 # Development tasks #
 #####################
 
+# A task the CI launches on its own must declare what it needs generated:
+# licenses/ is read at macro time, so every task that compiles the application
+# (the specs build src/cli.cr, and `crystal doc` runs the macros too) depends
+# on dev:licenses. On a bare checkout the compilation would otherwise be the
+# first thing to look for the folder, and fail.
+
 [tasks."dev:build"]
 description = "Compile to development binary"
+depends = ["dev:licenses"]
 run = "crystal build {{vars.COMPILE_OPTS_DEV}} -o {{vars.OUTPUT_FILE}} {{vars.SOURCE_FILE}}"
 
 [tasks."dev:deps"]
@@ -44,18 +51,30 @@ run = "rm -rf bin/* lib/"
 
 [tasks."dev:spec"]
 description = "Run Crystal spec"
+depends = ["dev:licenses"]
 timeout = "600s"
 run = "crystal spec {{vars.SPEC_OPTS}}"
 
 [tasks."dev:spec-mt"]
 description = "Run Crystal spec (multi-threaded)"
+depends = ["dev:licenses"]
 env = { CRYSTAL_WORKERS = "4" }
 timeout = "600s"
 run = "crystal spec {{vars.SPEC_OPTS}} -Dpreview_mt"
 
 [tasks."dev:docs"]
 description = "Generate project documentation"
+depends = ["dev:licenses"]
 run = "rm -rf docs && crystal doc"
+
+# Assembles the notices a statically linked binary has to carry, from
+# licenses.manifest, licenses-spdx/ and licenses-upstream/. The script is the
+# harvest-licenses.sh of the canonical Crystal templates, and its header
+# documents the inputs. It copies the LICENSE of the runtime shard from lib/,
+# so dev:deps comes first.
+[tasks."dev:licenses"]
+description = "Assemble the licenses/ folder baked into the binary"
+run = "bash scripts/harvest-licenses.sh"
 
 [tasks."dev:ameba"]
 description = "Run static code analysis"

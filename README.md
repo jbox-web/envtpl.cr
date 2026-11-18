@@ -16,6 +16,7 @@ Usage: envtpl [arguments]
     -o FILE, --out=FILE              Specifies the output file (STDOUT by default)
     -s, --strict                     Fail instead of rendering an empty string for an undefined variable
     -v, --version                    Show version
+    --licenses                       Print the third-party notices embedded in this binary
     -h, --help                       Show this help
 ```
 
@@ -112,6 +113,22 @@ $ echo "{{ env('SHELL', 'USER') | json(indent=4) }}" | envtpl
 Templates are executable input: `{% include 'other.j2' %}` reads any file under
 the current working directory (absolute paths and `../` traversal are refused).
 Render templates you trust.
+
+## Licenses
+
+`envtpl` is released under the MIT license. The binary also carries the code of
+what it links — the [Crinja](https://github.com/straight-shoota/crinja) shard,
+the Crystal runtime and, in the static linux builds, the C libraries — so it
+embeds their notices too:
+
+```sh
+$ envtpl --licenses
+==> clib-Apache-2.0.txt <==
+Used by: crystal
+...
+```
+
+The list is declared in `licenses.manifest`.
 
 ## Contributing
 
